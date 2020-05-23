@@ -14,3 +14,5 @@ with picamera.PiCamera() as picam:
     time.sleep(1)
     picam.capture(fichero)
     picam.close()
+
+print fichero

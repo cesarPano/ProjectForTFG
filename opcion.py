@@ -1,16 +1,18 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-import telebot                                                          # Libreria
-from telebot import types                                               # Tipos para telebot
+from telebot import TeleBot, types                                      # Tipos para telebot
 import time                                                             # Libreria
 import random
 import datetime
 import token
 import os
 import commands
+from unidecode import unidecode
 
+# io claudio 705071120
 TOKEN = '1069120953:AAF4Ckcgu93ATG5RTsHaEHzGIR6uoq8wZqo'   #Nuestro token del bot
-bot = telebot.TeleBot(TOKEN)
+bot = TeleBot(TOKEN)
 
 # --------------------------------------------------------------------------------
 # --------   FUNCIONES   ---------------------------------------------------------
@@ -38,14 +40,6 @@ def alarma(message , lista):
 	cadena = ''.join(['sudo python alarma.py ' , lista[1] , ' ' ,lista[2] , ' ' , lista[3] , ' ' , lista[4] , ' ' , lista[5] , ' ' , lista[6]])
 	aux = commands.getoutput(cadena)
 	bot.reply_to(message, 'Alarma correctamente definida y guardada')
-
-# ------------------------------------------------------------
-def apaga(message , lista):
-        aux = commands.getoutput('sudo shutdown 0')
-        bot.reply_to(message, aux)
-# ------------------------------------------------------------
-def ayuda(message , lista):
- 	bot.reply_to(message, "Comandos: \nalarma \napagar \nayuda \ncesta \ncomprar \nconsulta \nguardar \nregistrar")
 # ------------------------------------------------------------
 def bichos(message , lista):
 	argumentos = len(lista) - 1
@@ -57,37 +51,6 @@ def bichos(message , lista):
 	else:
 		respuesta = 'Argumentos invalidos'
 	bot.reply_to(message, respuesta)
-# ------------------------------------------------------------
-def cesta(message , lista):
-        cadena = ''.join(['sudo python cesta.py'])
-        aux = commands.getoutput(cadena)
-        aux = ''.join([aux , '\n... esta pendiente de comprar'])
-        bot.reply_to(message, aux)
-# ------------------------------------------------------------
-def compra(message , lista):
-        cadena = ''.join(['sudo python compra.py ' , lista[1]])
-        aux = commands.getoutput(cadena)
-        bot.reply_to(message, "Producto apuntado")
-# ------------------------------------------------------------
-def consulta(message , lista):
-        cadena = ''.join(['sudo python consulta.py '])
-        aux = commands.getoutput(cadena)
-        bot.reply_to(message, aux)
-        bot.reply_to(message, "Consulta finalizada")
-# ------------------------------------------------------------
-def foto(message , lista):
-	aux = commands.getoutput('sudo python foto.py')
-	bot.reply_to(message, "Foto hecha")
-# ------------------------------------------------------------
-def guarda(message , lista):
-        cadena = ''.join(['sudo python guarda.py ' , lista[1]])
-        aux = commands.getoutput(cadena)
-        bot.reply_to(message, "Guardado registro")
-# ------------------------------------------------------------
-def registra(message , lista):
-        aux = commands.getoutput('sudo python registra.py ccc')
-        bot.reply_to(message, "Usuario registrado")
-# ------------------------------------------------------------
 
 # --------------------------------------------------------------------------------
 # ----------------- FUNCION PRINCIPAL --------------------------------------------
@@ -95,34 +58,120 @@ def registra(message , lista):
 
 @bot.message_handler(func=lambda message: True)
 def echo_message(message):
-        lista = message.text.split()
+	lista = message.text.split()
+        orden = lista[0].upper()
 
-        funciones = {	'ALARMA'   : alarma,
-			'APAGA'    : apaga,
-			'AYUDA'    : ayuda,
-			'BICHOS'   : bichos,
-			'CESTA'    : cesta,
-			'COMPRA'   : compra,
-			'CONSULTA' : consulta,
-			'FOTO'	   : foto,
-			'GUARDA'   : guarda,
-			'REGISTRA' : registra }
+        # lista = orden = ''
+        if orden == 'PRINCIPAL' or orden == '.':
+                panelPrincipal = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=False)
+                panelPrincipal.add('Alarmas', 'Compras', 'Domotica', 'Sistema')
+                bot.send_message(message.chat.id, "Menu principal ...", reply_markup=panelPrincipal)
 
-        print (message.text)
-        #bot.reply_to(message, "Tu mensaje tiene {0} palabras".format(len(lista)))
+	if orden == 'ALARMAS':
+		panelAlarmas = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=False)
+		panelAlarmas.add('Borrar', 'Consultar', 'Crear', 'Principal')
+	        bot.send_message(message.chat.id, "Menu alarmas ...", reply_markup=panelAlarmas)
 
-        orden = lista[0].upper()					# extraemos la orden principal
+        if orden == 'COMPRAS':
+                panelCompras = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True, one_time_keyboard=False)
+                panelCompras.add('Limpiar', 'Cesta', 'Apuntar', 'Desapuntar', 'Principal')
+                bot.send_message(message.chat.id, "Menu compras ...", reply_markup=panelCompras)
 
-        try:
-                funciones[orden](message,lista)				# ejecucion de la funcion adecuada
-        except KeyError:
-                bot.reply_to(message, "Esa orden no la conozco.")	# error de diccionario
-        except:
-               bot.reply_to(message, "Error desconocido.")		# error distinto, general
+        if orden == 'DOMOTICA':
+                panelDomotica = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True, one_time_keyboard=False)
+                panelDomotica.add('Bichos', 'Foto', 'Principal')
+                bot.send_message(message.chat.id, "Menu domotica ...", reply_markup=panelDomotica)
+
+	if orden == 'SISTEMA':
+                panelSistema = types.ReplyKeyboardMarkup(row_width=4, resize_keyboard=True, one_time_keyboard=False)
+                panelSistema.add('Reiniciar', 'Apagar', 'Info', 'Principal')
+                bot.send_message(message.chat.id, "Menu sistema ...", reply_markup=panelSistema)
+
+	############################### ALARMAS ###############################
+
+	if orden == 'BORRAR':
+		pass
+
+        if orden == 'CONSULTAR':
+	        cadena = ''.join(['sudo python consulta.py '])
+        	aux = commands.getoutput(cadena)
+	        bot.send_message(message.chat.id, aux)
+
+        if orden == 'CREAR':
+                pass
+
+	############################### COMPRAS ###############################
+
+        if orden == 'LIMPIAR':
+                cadena = ''.join(['sudo python limpiar.py'])
+                aux = commands.getoutput(cadena)
+                aux = ''.join([aux , '\n... la cesta esta vacia ahora'])
+                bot.send_message(message.chat.id, aux)
+
+        if orden == 'CESTA':
+	        cadena = ''.join(['sudo python cesta.py'])
+        	aux = commands.getoutput(cadena)
+		if aux == '':
+		        aux = ''.join([aux , 'La cesta esta vacia'])
+		else:
+		        aux = ''.join([aux , '\n... esta pendiente de comprar'])
+        	bot.send_message(message.chat.id, aux)
+
+        if orden == 'DESAPUNTAR':                    # esta opcion se deriva a la opcion 'comprar'
+		desapuntado = False
+		if len(lista) > 1:
+                        cadena = ''.join(['sudo python desapuntar.py ' , lista[1]])
+			aux = commands.getoutput(cadena)
+                        bot.reply_to(message, "Producto desapuntado")
+			desapuntado = True
+		if len(lista) == 1 or desapuntado:
+ 	                cadena = ''.join(['sudo python cesta.py'])
+        		listaCompra = commands.getoutput(cadena).split()
+		      	panelDesapuntar = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=False)
+			acumulados = 0
+			for articulo in listaCompra:
+				if acumulados == 0:
+					acumulados = 1
+					aux = 'Desapuntar ' + articulo
+				elif acumulados == 1:
+					acumulados = 0
+					aux1 = 'Desapuntar ' + articulo
+					panelDesapuntar.add(aux, aux1)
+			if acumulados == 1:
+				panelDesapuntar.add(aux)
+       	        	panelDesapuntar.add('Compras', 'Principal')
+        	        bot.send_message(message.chat.id, "Pulsa para desapuntar ...", reply_markup=panelDesapuntar)
+
+        if orden == 'APUNTAR':                    # esta opcion se deriva a la opcion 'comprar'
+	        bot.send_message(message.chat.id, "Para comprar, escribe ...\n      comprar mi_producto")
+
+	if orden == 'COMPRAR':                    # la opcion real de 'apuntar'
+	        cadena = ''.join(['sudo python compra.py ' , unidecode(lista[1])])
+        	aux = commands.getoutput(cadena)
+	        bot.send_message(message.chat.id, "Producto apuntado")
+
+	############################### DOMOTICA ###############################
+
+        if orden == 'BICHOS':
+                pass
+
+	if orden == 'FOTO':
+		aux = commands.getoutput('sudo python foto.py')
+		bot.send_photo(message.chat.id, photo=open(aux, 'rb'))
+
+	############################### SISTEMA ###############################
+
+        if orden == 'REINICIAR':
+                aux = commands.getoutput('sudo reboot')
+                bot.send_message(message.chat.id, aux)
+
+        if orden == 'APAGAR':
+		aux = commands.getoutput('sudo shutdown 0')
+		bot.send_message(message.chat.id, aux)
+
+        if orden == 'INFO':
+                aux = commands.getoutput('sudo /home/pi/proyecto/info.sh')
+                bot.send_message(message.chat.id, aux)
 
 bot.polling(none_stop=True)
 # --------------------------------------------------------------------------------
-
-# hacer un switch decente
-# combinar el nodo alexa
-# comprar enchufes inteligentes
