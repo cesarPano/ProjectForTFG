@@ -100,7 +100,24 @@ def echo_message(message):
         else:
             cadena = ''.join(['sudo python  ', DIRECTORIO, 'alarma.py ' , lista[1] , ' ' ,lista[2] , ' ' , lista[3] , ' ' , lista[4] , ' ', lista[5] , ' ' , lista[6]])
             aux = commands.getoutput(cadena)
-            bot.send_message(message.chat.id, 'Alarma correctamente definida y guardada')
+            if len(aux):
+                bot.send_message(message.chat.id, 'Alarma correctamente definida y guardada')
+                for x in range (1, 6):
+                    if lista[x] == 'x':
+                        lista[x] = '*'
+                cadena = (''.join(['sudo echo "',
+                                  '*' if lista[1] == 'x' else lista[1], ' ',
+                                  '*' if lista[2] == 'x' else lista[2], ' ',
+                                  '*' if lista[3] == 'x' else lista[3], ' ',
+                                  '*' if lista[4] == 'x' else lista[4], ' ',
+                                  '*' if lista[5] == 'x' else lista[5],
+                                  ' sudo python mensajea.py ', lista[6], '" \# ',
+                                  aux, ' >> /var/spool/cron/crontabs/root']))
+                print cadena
+                aux = commands.getoutput(cadena)
+                print aux
+            else:
+                bot.send_message(message.chat.id, 'Error al crear la alarma')
 
     ############################### COMPRAS ###############################
 
@@ -158,15 +175,17 @@ def echo_message(message):
         refrescar = False
         if len(lista) == 3:
             cadena = ''.join(['sudo python  ', DIRECTORIO, 'bichos.py ', lista[1], ' ', lista[2]])
-            commands.getoutput(cadena).split()
+            commands.getoutput(cadena)    # .split()     --> para que ?
             refrescar = True
         if len(lista) == 1 or refrescar:
             cadena = ''.join(['sudo python  ', DIRECTORIO, 'bichos.py 9 9'])
             listaBichos = commands.getoutput(cadena).split()
             panelBichos = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True, one_time_keyboard=False)
-            for linea in range(0, len(listaBichos), 3):
-                idBicho = listaBichos[linea] + 's ' + listaBichos[linea + 1] + ' '
-                panelBichos.add( idBicho + listaBichos[linea + 2], idBicho + '0', idBicho + '1')
+            print (listaBichos)
+            if listaBichos != '':
+                for linea in range(0, len(listaBichos), 3):
+                    idBicho = listaBichos[linea] + 's ' + listaBichos[linea + 1] + ' '
+                    panelBichos.add( idBicho + listaBichos[linea + 2], idBicho + '0', idBicho + '1')
             panelBichos.add('Bichos', 'Principal')
             bot.send_message(message.chat.id, "Pulsa para encender o apagar ...", reply_markup=panelBichos)
         else:
