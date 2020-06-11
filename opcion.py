@@ -4,14 +4,14 @@
 
 from telebot import TeleBot, types                                      # Tipos para telebot
 import time                                                             # Libreria
-import random
 import datetime
 import token
 import os
 import commands
 from unidecode import unidecode
+import pymysql
+import sys
 
-# io claudio 705071120
 TOKEN = '1069120953:AAF4Ckcgu93ATG5RTsHaEHzGIR6uoq8wZqo'   #Nuestro token del bot
 bot = TeleBot(TOKEN)
 DIRECTORIO = '/home/pi/proyecto/'
@@ -24,6 +24,60 @@ DIRECTORIO = '/home/pi/proyecto/'
 def echo_message(message):
     lista = message.text.split()
     orden = lista[0].upper()
+    llamante = str(message.chat.id)
+
+    db = pymysql.connect("localhost","root","root","agenda")
+    cursor = db.cursor()
+    sql = "SELECT * FROM usuarios WHERE id_telegram = '{0}'".format(llamante)
+    try:
+        cursor.execute(sql)
+        resultado = cursor.fetchall()
+        if not resultado:
+            orden = 'ID_NO_REGISTRADA'
+        db.commit()
+    except:
+        db.rollback()
+    db.close()
+
+    if orden == 'DEMIURGO':
+       if len(lista) == 1:
+          db = pymysql.connect("localhost","root","root","agenda")
+          cursor = db.cursor()
+          sql = "SELECT * FROM usuarios WHERE 1"
+          try:
+            cursor.execute(sql)
+            usuarios = cursor.fetchall()
+            aux = ''
+            for usuario in usuarios:
+                aux = ''.join([aux, usuario[1], ' ', usuario[2], '\n'])
+            bot.send_message(message.chat.id, aux)
+            db.commit()
+          except:
+              db.rollback()
+          db.close()
+       elif lista[1] == '+':
+          db = pymysql.connect("localhost","root","root","agenda")
+          cursor = db.cursor()
+          sql = "INSERT INTO usuarios(id_usuario, nombre, id_telegram) VALUES (NULL,'{0}', '{1}')".format(lista[2], lista[3])
+          try:
+            cursor.execute(sql)
+            db.commit()
+          except:
+            db.rollback()
+          db.close()
+       elif lista[1] == '-':
+          db = pymysql.connect("localhost","root","root","agenda")
+          cursor = db.cursor()
+          sql = "DELETE FROM usuarios WHERE nombre = '{0}'".format(lista[2])
+          try:
+            cursor.execute(sql)
+            db.commit()
+          except:
+            db.rollback()
+          db.close()
+
+    if orden == 'ID_NO_REGISTRADA':
+        bot.send_message(message.chat.id, "Usted no esta registrado, largo.")
 
     if orden == 'PRINCIPAL' or orden == '.':
         panelPrincipal = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=False)
@@ -55,6 +109,20 @@ def echo_message(message):
     if orden == 'BORRAR':
         borrado = False
         if len(lista) > 1:
+            db = pymysql.connect("localhost","root","root","agenda")
+            cursor = db.cursor()
+            sql = "SELECT * FROM alarmas WHERE dato = '{0}'".format(lista[1])
+            print sql
+            try:
+               cursor.execute(sql)
+               resultado = cursor.fetchone()
+               db.commit()
+            except:
+               db.rollback()
+            db.close()
+            commands.getoutput(''.join(["sudo ", DIRECTORIO, "limpiacron.sh ", resultado[9]]))
+            commands.getoutput("sudo service cron restart")
+
             cadena = ''.join(['sudo python ', DIRECTORIO, 'borrar.py ' , lista[1]])
             aux = commands.getoutput(cadena)
             bot.send_message(message.chat.id, "Alarma borrada")
@@ -83,7 +151,7 @@ def echo_message(message):
         bot.send_message(message.chat.id, aux)
 
     if orden == 'CREAR':
-        if len(lista) != 7:
+        if len(lista) != 8:
             bot.send_message(message.chat.id, "Para poner otra alarma, escribe ...\n      crear minuto hora dia mes dia_semana mensaje\n usando x para comodin")
         elif not(lista[1]=='x' or (int(lista[1])>=0 and int(lista[1])<=59)):
             bot.send_message(message.chat.id, 'Error en la definicion de los minutos')
@@ -97,35 +165,39 @@ def echo_message(message):
             bot.send_message(message.chat.id, 'Error en la definicion de el dia de la semana')
         elif lista[6]=='':
             bot.send_message(message.chat.id, 'Error en la definicion del texto del mensaje')
+        elif lista[7]=='':
+            bot.send_message(message.chat.id, 'Error en la definicion del destinatario del mensaje')
         else:
-            cadena = ''.join(['sudo python  ', DIRECTORIO, 'alarma.py ' , lista[1] , ' ' ,lista[2] , ' ' , lista[3] , ' ' , lista[4] , ' ', lista[5] , ' ' , lista[6]])
-            aux = commands.getoutput(cadena)
-            if len(aux):
+            cadena = ''.join(['sudo python  ', DIRECTORIO, 'alarma.py ' , lista[1] , ' ' ,lista[2] , ' ' , lista[3] , ' ' , lista[4] , ' ', lista[5] , ' ', lista[6], ' ', lista[7]])
+            matricula = commands.getoutput(cadena)
+            if len(matricula):
                 bot.send_message(message.chat.id, 'Alarma correctamente definida y guardada')
-                for x in range (1, 6):
-                    if lista[x] == 'x':
-                        lista[x] = '*'
                 cadena = (''.join(['sudo echo "',
                                   '*' if lista[1] == 'x' else lista[1], ' ',
                                   '*' if lista[2] == 'x' else lista[2], ' ',
                                   '*' if lista[3] == 'x' else lista[3], ' ',
                                   '*' if lista[4] == 'x' else lista[4], ' ',
                                   '*' if lista[5] == 'x' else lista[5],
-                                  ' sudo python mensajea.py ', lista[6], '" \# ',
-                                  aux, ' >> /var/spool/cron/crontabs/root']))
-                print cadena
-                aux = commands.getoutput(cadena)
-                print aux
+                                  ' sudo python ', DIRECTORIO, 'mensajea.py ', matricula,
+                                  ' ', lista[7], '" >> /var/spool/cron/crontabs/root']))
+                commands.getoutput(cadena)
+                commands.getoutput("sudo service cron restart")
             else:
                 bot.send_message(message.chat.id, 'Error al crear la alarma')
 
     ############################### COMPRAS ###############################
 
     if orden == 'LIMPIAR':
-        cadena = ''.join(['sudo python  ', DIRECTORIO, 'limpiar.py'])
-        aux = commands.getoutput(cadena)
-        aux = ''.join([aux , '\n... la cesta esta vacia ahora'])
-        bot.send_message(message.chat.id, aux)
+        db = pymysql.connect("localhost","root","root","agenda")
+        cursor = db.cursor()
+        sql = "DELETE FROM compras WHERE 1"
+        try:
+           cursor.execute(sql)
+           db.commit()
+        except:
+           db.rollback()
+        db.close()
+        bot.send_message(message.chat.id, '\n... la cesta esta vacia ahora')
 
     if orden == 'CESTA':
         cadena = ''.join(['sudo python ', DIRECTORIO, 'cesta.py'])
@@ -181,7 +253,6 @@ def echo_message(message):
             cadena = ''.join(['sudo python  ', DIRECTORIO, 'bichos.py 9 9'])
             listaBichos = commands.getoutput(cadena).split()
             panelBichos = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True, one_time_keyboard=False)
-            print (listaBichos)
             if listaBichos != '':
                 for linea in range(0, len(listaBichos), 3):
                     idBicho = listaBichos[linea] + 's ' + listaBichos[linea + 1] + ' '
